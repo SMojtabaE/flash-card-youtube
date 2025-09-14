@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, get_list_or_404
 from card.models import FlashCard
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from .permissions import IsOwner
 from card.serializers import (
     CreateFlashCardSerializer,
     UpdateFlashCardSerializer,
@@ -27,7 +28,7 @@ class CreateFlashCardView(APIView):
 
 class UpdateFlashCardView(APIView):
     
-    permission_classes=(IsAuthenticated,)
+    permission_classes=(IsAuthenticated,IsOwner)
 
     def put(self, request, id):
 
@@ -36,6 +37,8 @@ class UpdateFlashCardView(APIView):
         serializer = UpdateFlashCardSerializer(
             data=request.data, instance=flash_card)
 
+        self.check_object_permissions(request,flash_card) # checks if the user is the owner of flash-cards
+        
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -44,23 +47,23 @@ class UpdateFlashCardView(APIView):
 
 class DeleteFlashCardView(APIView):
     
-    permission_classes=(IsAuthenticated,)
+    permission_classes=(IsAuthenticated,IsOwner)
 
     def delete(self, request, id):
         flash_card = get_object_or_404(FlashCard, id=id)
+        self.check_object_permissions(request,flash_card)  # checks if the user is the owner of flash-cards
         flash_card.delete()
-
         return Response(status=status.HTTP_204_NO_CONTENT)
-
+        
 
 class ListFlashCardsView(APIView):
     
-    permission_classes=(IsAuthenticated,)
+    permission_classes = (IsAuthenticated,IsOwner)
     
     def get(self, request, user_id):
 
         all_user_flash_cards = get_list_or_404(FlashCard, user__id=user_id)
 
         serializer = ListFlashCardSerializer(all_user_flash_cards, many=True)
-
+        self.check_object_permissions(request, all_user_flash_cards[0])  # checks if the user is the owner of flash-cards
         return Response(serializer.data)
